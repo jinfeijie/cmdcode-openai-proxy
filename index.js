@@ -527,50 +527,7 @@ function readCookies(req) {
   return out;
 }
 
-const ADMIN_HTML = `<!DOCTYPE html>
-<html><head><meta charset="utf-8"><title>Command Code Proxy 管理</title>
-<style>
-body{font-family:system-ui,max-width:900px;margin:40px auto;padding:0 20px;color:#222}
-h1{font-size:22px}h2{font-size:16px;margin-top:28px;border-bottom:1px solid #ddd;padding-bottom:6px}
-.card{background:#f8f8f8;border-radius:8px;padding:16px;margin:12px 0}
-table{width:100%;border-collapse:collapse;font-size:14px}
-td,th{text-align:left;padding:8px;border-bottom:1px solid #eee}
-input,button{padding:8px 12px;font-size:14px;margin:4px}
-input[type=text]{font-family:monospace;width:380px}
-button{cursor:pointer}
-.badge{padding:2px 8px;border-radius:10px;font-size:12px}
-.on{background:#d4edda;color:#155724}.off{background:#f8d7da;color:#721c24}
-.msg{padding:8px;margin:8px 0;border-radius:6px}
-.ok{background:#d4edda;color:#155724}.err{background:#f8d7da;color:#721c24}
-code{background:#eee;padding:2px 6px;border-radius:4px}
-</style></head><body>
-<h1>Command Code Proxy 管理</h1>
-<div id="msg"></div>
-<h2>Proxy Keys(客户端授权)</h2>
-<div class="card">
-  <p>客户端请求需带 <code>Authorization: Bearer &lt;key&gt;</code>。每个 key 可给不同使用者。</p>
-  <form id="keyForm" onsubmit="return addKey(event)">
-    <input type="text" id="keyName" placeholder="名称(如: 朋友A)" required>
-    <input type="text" id="keyValue" placeholder="留空自动生成">
-    <button type="submit">添加</button>
-  </form>
-  <p style="font-size:13px;color:#666">HTTPS base(留空则只生成 HTTP 连接串,适用于已配置 TLS 反代的场景):
-  <input type="text" id="httpsBase" placeholder="https://proxy.example.com/v1" style="width:280px" onchange="saveHttpsBase()"></p>
-  <table id="keyTable"><thead><tr><th>名称</th><th>Key</th><th>状态</th><th>复制</th><th>操作</th></tr></thead><tbody></tbody></table>
-</div>
-<h2>Command Code 账号(额度池)</h2>
-<div class="card">
-  <p>请求分配:首次按余额智能选择 → 会话亲和 → 账号不可用自动切换。</p>
-  <button onclick="startOAuth()" style="background:#007bff;color:#fff;border:none;padding:10px 18px;border-radius:6px">🔐 用 Command Code 账号登录(OAuth)</button>
-  <p style="font-size:13px;color:#666">点击后用浏览器打开官方授权页,登录后自动添加账号,无需手动复制 API key。</p>
-  <form id="accForm" onsubmit="return addAccount(event)">
-    <input type="text" id="accKey" placeholder="user_...(或手动粘贴 API key)" required>
-    <button type="submit">添加账号</button>
-  </form>
-  <table id="accTable"><thead><tr><th>用户</th><th>邮箱</th><th>余额</th><th>状态</th><th>操作</th></tr></thead><tbody></tbody></table>
-</div>
-<script src="/admin.js"></script>
-</body></html>`;
+const ADMIN_HTML = readFileSync(join(process.cwd(), 'static', 'admin.html'), 'utf8');
 
 // 管理页登录/渲染
 async function handleAdminPage(req, res, url) {
@@ -653,7 +610,12 @@ function serveAdminStatic(res, pathname) {
   try {
     const file = readFileSync(join(process.cwd(), 'static', pathname.replace(/^\//, '')), 'utf8');
     cors(res);
-    res.writeHead(200, { 'Content-Type': 'application/javascript', 'Cache-Control': 'no-store' });
+    const contentType = pathname.endsWith('.html')
+      ? 'text/html; charset=utf-8'
+      : pathname.endsWith('.css')
+        ? 'text/css; charset=utf-8'
+        : 'application/javascript; charset=utf-8';
+    res.writeHead(200, { 'Content-Type': contentType, 'Cache-Control': 'no-store' });
     return res.end(file);
   } catch {
     return sendJson(res, 404, openaiError(404, 'Static file not found'));
@@ -825,7 +787,7 @@ const server = createServer(async (req, res) => {
   const isVerifyPath = /^\/v1\/accounts\/verify\/[A-Z0-9]{8}$/.test(url.pathname);
 
   // 管理页相关路径: /admin 及 /api/admin/*
-  const isAdminPath = url.pathname === '/admin' || url.pathname === '/admin.js' || url.pathname.startsWith('/api/admin');
+  const isAdminPath = url.pathname === '/admin' || url.pathname === '/admin.html' || url.pathname === '/admin.js' || url.pathname === '/admin.css' || url.pathname.startsWith('/api/admin');
 
   // 对外认证(verify 页和管理页除外——它们有自己的认证机制)
   if (checkProxyAuth(req) === false && !isVerifyPath && !isAdminPath) {
@@ -840,11 +802,11 @@ const server = createServer(async (req, res) => {
     return handleAdminApi(req, res, url);
   }
   // 管理页静态资源(需 admin 会话)
-  if (url.pathname === '/admin.js') {
+  if (url.pathname === '/admin.js' || url.pathname === '/admin.css' || url.pathname === '/admin.html') {
     if (!validateAdminSession(req)) {
       return sendJson(res, 401, openaiError(401, 'Admin authentication required', 'admin_auth'));
     }
-    return serveAdminStatic(res, '/admin.js');
+    return serveAdminStatic(res, url.pathname);
   }
 
   if (req.method === 'GET' && url.pathname === '/v1/models') {

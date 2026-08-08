@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CmdCode Proxy · 管理台</title>
+  <link rel="stylesheet" href="/admin.css">
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">CP</div>
+        <div>
+          <strong>CmdCode Proxy</strong>
+          <span>控制台</span>
+        </div>
+      </div>
+      <nav class="nav">
+        <button class="nav-item active" data-view="overview">概览</button>
+        <button class="nav-item" data-view="keys">访问密钥</button>
+        <button class="nav-item" data-view="accounts">账号池</button>
+      </nav>
+      <div class="sidebar-foot">
+        <div class="status-line">
+          <span class="dot"></span>
+          <span id="navStatus">读取中</span>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <h1 id="pageTitle">概览</h1>
+          <p id="pageSub">代理运行状态与关键指标</p>
+        </div>
+        <button class="icon-btn" id="refreshBtn" title="刷新数据">↻</button>
+      </header>
+
+      <div id="toast" class="toast" role="status"></div>
+
+      <!-- 概览 -->
+      <section id="view-overview" class="view active">
+        <div class="stat-grid">
+          <div class="stat-card">
+            <span class="stat-label">代理密钥</span>
+            <strong id="statKeys">-</strong>
+            <small id="statKeysSub">读取中</small>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">账号池</span>
+            <strong id="statAccounts">-</strong>
+            <small id="statAccountsSub">读取中</small>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">可用余额</span>
+            <strong id="statBalance">-</strong>
+            <small id="statBalanceSub">读取中</small>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">网关</span>
+            <strong id="statGateway">-</strong>
+            <small id="statGatewaySub">api.commandcode.ai</small>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>运行方式</h2>
+              <p>把 OpenAI 兼容客户端指向本代理，统一走 Command Code 网关。</p>
+            </div>
+          </div>
+          <div class="code-box">
+            <code id="usageSnippet">正在读取端点信息…</code>
+            <button class="ghost-btn" id="copySnippet">复制</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- 访问密钥 -->
+      <section id="view-keys" class="view">
+        <div class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>客户端密钥</h2>
+              <p>客户端请求使用 <code>Authorization: Bearer &lt;key&gt;</code>。</p>
+            </div>
+          </div>
+          <div class="toolbar">
+            <input id="keyName" class="field" placeholder="名称，如 friend-a" maxlength="40">
+            <input id="keyValue" class="field mono" placeholder="留空自动生成" spellcheck="false">
+            <button class="primary-btn" id="addKeyBtn">生成密钥</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>名称</th>
+                  <th>密钥</th>
+                  <th>状态</th>
+                  <th>连接串</th>
+                  <th class="col-actions">操作</th>
+                </tr>
+              </thead>
+              <tbody id="keyRows"></tbody>
+            </table>
+            <div id="keyEmpty" class="empty">还没有密钥，先创建一个。</div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>HTTPS 出口</h2>
+              <p>部署在 TLS 反代之后时，复制 HTTPS 连接串会使用这里的地址。</p>
+            </div>
+          </div>
+          <div class="toolbar">
+            <input id="httpsBase" class="field mono" placeholder="https://proxy.example.com/v1" spellcheck="false">
+            <button class="ghost-btn" id="saveBaseBtn">保存</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- 账号池 -->
+      <section id="view-accounts" class="view">
+        <div class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>Command Code 账号</h2>
+              <p>按余额分配，支持会话亲和与故障切换。</p>
+            </div>
+            <button class="primary-btn" id="oauthBtn">OAuth 授权</button>
+          </div>
+          <div class="toolbar">
+            <input id="accKey" class="field mono" placeholder="user_… 或完整 API key" spellcheck="false">
+            <button class="ghost-btn" id="addAccBtn">手动添加</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>用户</th>
+                  <th>邮箱</th>
+                  <th>密钥</th>
+                  <th>余额</th>
+                  <th>状态</th>
+                  <th class="col-actions">操作</th>
+                </tr>
+              </thead>
+              <tbody id="accRows"></tbody>
+            </table>
+            <div id="accEmpty" class="empty">账号池为空，添加账号后即可转发请求。</div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="/admin.js"></script>
+</body>
+</html>
