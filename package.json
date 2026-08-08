@@ -1,0 +1,13 @@
+{
+  "name": "cmdcode-openai-proxy",
+  "version": "1.0.0",
+  "description": "Translate Command Code's private gateway protocol to OpenAI chat/completions",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

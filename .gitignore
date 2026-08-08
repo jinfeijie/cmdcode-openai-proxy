@@ -1,0 +1,22 @@
+# 密钥与账号凭据 - 绝不要提交
+oauth-key
+admin.json
+proxy-keys.json
+accounts.json
+
+# 运行时缓存与本地数据
+vision-cache/
+*.log
+
+# 依赖与构建产物
+node_modules/
+dist/
+build/
+
+# 本地环境与 IDE 配置
+.env
+.env.*
+!.env.example
+.DS_Store
+.idea/
+.vscode/
