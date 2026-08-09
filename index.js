@@ -5,7 +5,7 @@ import { createServer } from 'node:http';
 import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { loadApiKey, buildGatewayHeaders } from './lib/auth.js';
+import { buildGatewayHeaders } from './lib/auth.js';
 import { streamGateway, GatewayError } from './lib/gateway.js';
 import { openaiToWireBody, createWireToOpenAI, finishToOpenAI } from './lib/translate.js';
 import { collectImagesFromMessages, describeImagesWithLuna, replaceImagesWithDescription, needsVisionAssist, VISION_MODEL } from './lib/vision.js';
@@ -31,17 +31,12 @@ if (initKey) {
   console.log('==========================================\n');
 }
 
-// 账号池: 多 Command Code 账号;项目 oauth-key 优先,空池时回退到 ~/.commandcode/auth.json
+// 账号池: 多 Command Code 账号;项目 oauth-key 与 accounts.json 持久化
 const pool = createAccountPool();
-if (pool.count() === 0) {
-  try {
-    const fallbackKey = loadApiKey();
-    pool.addAccountByKey(fallbackKey, { withBalance: false }).catch((err) => {
-      console.error(`[accounts] fallback auth.json key failed validation: ${err.message}`);
-    });
-  } catch (err) {
-    console.error(`[accounts] no accounts configured and no auth.json fallback: ${err.message}`);
-  }
+if (pool.count() === 0 && process.env.CMDCODE_API_KEY) {
+  pool.addAccountByKey(process.env.CMDCODE_API_KEY, { withBalance: false }).catch((err) => {
+    console.error(`[accounts] CMDCODE_API_KEY failed validation: ${err.message}`);
+  });
 }
 
 // 逆向自 cli.mjs 的 `nr` 模型集合(54 个)
