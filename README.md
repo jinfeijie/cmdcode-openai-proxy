@@ -26,8 +26,6 @@ npm start
 3. 在“访问密钥”中复制或创建客户端密钥
 4. 将 Base URL 和客户端密钥填入 OpenAI 兼容客户端
 
-服务不会读取 `~/.commandcode` 或其他用户主目录配置。账号仅来自项目数据文件或显式设置的 `CMDCODE_API_KEY`。
-
 ## 调用示例
 
 ```bash
