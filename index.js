@@ -63,6 +63,39 @@ const MODEL_IDS = [
   'poolside/laguna-s-2.1-free', 'inclusionai/ling-3.0-flash-free',
 ];
 
+// 模型市场元数据: 展示分组/厂商/能力标签,不包含任何凭据
+const MODEL_META = [
+  { vendor: 'Anthropic', group: 'Claude', tag: '通用旗舰', models: ['claude-sonnet-5', 'claude-sonnet-4-6', 'claude-fable-5', 'claude-opus-5', 'claude-opus-4-8', 'claude-opus-4-7', 'claude-haiku-4-5-20251001'] },
+  { vendor: 'OpenAI', group: 'GPT', tag: '推理旗舰', models: ['gpt-5.6-sol', 'gpt-5.6-terra', 'gpt-5.6-luna', 'gpt-5.5', 'gpt-5.4', 'gpt-5.3-codex', 'gpt-5.4-mini'] },
+  { vendor: 'DeepSeek', group: 'DeepSeek', tag: '性价比', models: ['deepseek/deepseek-v4-pro', 'deepseek/deepseek-v4-flash'] },
+  { vendor: 'Qwen', group: 'Qwen', tag: '中文强项', models: ['Qwen/Qwen3.8-Max', 'Qwen/Qwen3.7-Max', 'Qwen/Qwen3.7-Plus', 'Qwen/Qwen3.6-Max-Preview', 'Qwen/Qwen3.6-Plus', 'Qwen/Qwen3.7-Flash'] },
+  { vendor: 'Moonshot', group: 'Kimi', tag: '长上下文', models: ['moonshotai/Kimi-K3', 'moonshotai/Kimi-K2.7-Code', 'moonshotai/Kimi-K2.7-Code-Highspeed', 'moonshotai/Kimi-K2.6', 'moonshotai/Kimi-K2.5'] },
+  { vendor: 'Zhipu', group: 'GLM', tag: '中文强项', models: ['zai-org/GLM-5.2', 'zai-org/GLM-5.2-Fast', 'zai-org/GLM-5.1', 'zai-org/GLM-5'] },
+  { vendor: 'Google', group: 'Gemini', tag: '多模态', models: ['google/gemini-3.6-flash', 'google/gemini-3.5-flash', 'google/gemini-3.5-flash-lite', 'google/gemini-3.1-flash-lite'] },
+  { vendor: 'MiniMax', group: 'MiniMax', tag: '多模态', models: ['MiniMaxAI/MiniMax-M3', 'MiniMaxAI/MiniMax-M3-Free', 'MiniMaxAI/MiniMax-M2.7', 'MiniMaxAI/MiniMax-M2.5'] },
+  { vendor: 'Xiaomi', group: 'MiMo', tag: '端侧友好', models: ['xiaomi/mimo-v2.5-pro', 'xiaomi/mimo-v2.5'] },
+  { vendor: 'Tencent', group: 'Hunyuan', tag: '中文强项', models: ['tencent/hy3-paid', 'tencent/Hy3'] },
+  { vendor: 'StepFun', group: 'Step', tag: '创意写作', models: ['stepfun/Step-3.7-Flash', 'stepfun/Step-3.5-Flash'] },
+  { vendor: 'Others', group: '更多模型', tag: '覆盖更广', models: ['sakana/fugu-ultra', 'xai/grok-4.5', 'meta/muse-spark-1.1', 'meta/muse-spark-1.2', 'meta/muse-spark-1.2-contributor', 'nvidia/nemotron-3-ultra-550b-a55b', 'poolside/laguna-s-2.1-free', 'inclusionai/ling-3.0-flash-free', 'thinkingmachines/inkling', 'thinkingmachines/inkling-small'] },
+];
+
+function buildModelGroups() {
+  const modelSet = new Set(MODEL_IDS);
+  return MODEL_META
+    .map((meta) => ({
+      vendor: meta.vendor,
+      group: meta.group,
+      tag: meta.tag,
+      models: meta.models.filter((m) => modelSet.has(m)),
+    }))
+    .filter((g) => g.models.length > 0);
+}
+
+const MODEL_GROUPS = buildModelGroups();
+const MODEL_TOTAL = MODEL_IDS.length;
+const VENDOR_COUNT = MODEL_GROUPS.length;
+const FALLBACK_MODELS = ['deepseek/deepseek-v4-flash', 'gpt-5.6-luna', 'claude-sonnet-5', 'Qwen/Qwen3.7-Flash'];
+
 function cors(res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -73,6 +106,22 @@ function sendJson(res, status, obj) {
   cors(res);
   res.writeHead(status, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify(obj));
+}
+
+function sendHtml(res, html, status = 200) {
+  cors(res);
+  res.setHeader('Cache-Control', 'no-store');
+  res.writeHead(status, { 'Content-Type': 'text/html; charset=utf-8' });
+  res.end(html);
+}
+
+function htmlEscape(value) {
+  return String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
 }
 
 function openaiError(status, message, type = 'invalid_request_error') {
@@ -529,6 +578,162 @@ function readCookies(req) {
 
 const ADMIN_HTML = readFileSync(join(process.cwd(), 'static', 'admin.html'), 'utf8');
 
+function renderAuthPage({ mode, error }) {
+  const isSetup = mode === 'setup';
+  const title = isSetup ? '设置管理密码' : '登录控制台';
+  const headline = isSetup ? '设置管理密码' : '登录管理控制台';
+  const sub = isSetup
+    ? '设置管理密码，守护你的密钥、账号与每一次连接。'
+    : '输入管理密码，回到清晰、明亮的网关控制台。';
+  const action = isSetup ? '设置并进入' : '进入控制台';
+  const errorHtml = error
+    ? `<div class="alert">${htmlEscape(error)}</div>`
+    : '';
+  const keyLine = isSetup
+    ? ''
+    : `<p class="hint">还不知道密码？请回想首次部署时设置的密码，或重启项目后重新配置。</p>`;
+  return `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>${title}</title>
+  <link rel="stylesheet" href="/auth.css">
+</head>
+<body class="auth-body">
+  <div class="auth-bg" aria-hidden="true"></div>
+  <main class="auth-card">
+    <div class="auth-logo">
+      <span class="logo-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m8 6-5 6 5 6"/><path d="m16 6 5 6-5 6"/></svg>
+      </span>
+      <span class="logo-copy"><span class="logo-text">CmdCode Proxy</span><span class="logo-sub">GATEWAY CONSOLE</span></span>
+    </div>
+    <span class="auth-kicker">LOCAL OPERATIONS</span>
+    <h1>${headline}</h1>
+    <p class="lead">${sub}</p>
+    ${errorHtml}
+    <form method="POST" action="/admin" class="auth-form">
+      <label for="password">管理密码</label>
+      <div class="password-row">
+        <input id="password" name="password" type="password" placeholder="输入密码" autocomplete="current-password" required minlength="4">
+        <button type="button" class="eye-btn" data-eye aria-label="显示或隐藏密码">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+      </div>
+      <button class="primary-btn" type="submit">${action}
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 14 0"/><path d="m13 6 6 6-6 6"/></svg>
+      </button>
+    </form>
+    ${keyLine}
+    <div class="auth-foot">
+      <span class="status-dot"></span>
+      本地管理 · 数据仅保存在这台机器
+    </div>
+  </main>
+  <script>
+    const eye = document.querySelector('[data-eye]');
+    const input = document.querySelector('#password');
+    eye && input && eye.addEventListener('click', () => {
+      const show = input.type === 'password';
+      input.type = show ? 'text' : 'password';
+      eye.classList.toggle('visible', show);
+    });
+  </script>
+</body>
+</html>`;
+}
+
+function renderVerifyPage({ userCode, error }) {
+  const errorHtml = error
+    ? `<div class="alert">${htmlEscape(error)}</div>`
+    : '';
+  return `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>账号授权 · CmdCode Proxy</title>
+  <link rel="stylesheet" href="/verify.css">
+</head>
+<body class="verify-body">
+  <main class="verify-card">
+    <div class="verify-head">
+      <span class="verify-icon">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+      </span>
+      <span class="eyebrow">CmdCode Proxy</span>
+      <h1>账号授权</h1>
+      <p>把这台代理与你的 Command Code 账号绑定，之后即可统一分配额度。</p>
+    </div>
+    <div class="code-pill">
+      <span>设备码</span>
+      <strong>${htmlEscape(userCode)}</strong>
+    </div>
+    <div class="verify-steps">
+      <span>1</span><p>从 Command Code 官网或 CLI 获取 API key</p>
+      <span>2</span><p>粘贴到下方并提交</p>
+    </div>
+    ${errorHtml}
+    <form method="POST" action="/v1/accounts/verify/${htmlEscape(userCode)}" class="verify-form">
+      <label for="apiKey">API Key</label>
+      <input id="apiKey" name="apiKey" type="text" placeholder="user_..." autocomplete="off" spellcheck="false" required>
+      <button class="primary-btn" type="submit">
+        提交授权
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 14 0"/><path d="m13 6 6 6-6 6"/></svg>
+      </button>
+    </form>
+  </main>
+</body>
+</html>`;
+}
+
+function renderSuccessPage({ account }) {
+  const name = htmlEscape(account?.userName || '账号');
+  const email = htmlEscape(account?.email || '');
+  return `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>授权成功 · CmdCode Proxy</title>
+  <link rel="stylesheet" href="/verify.css">
+</head>
+<body class="verify-body">
+  <main class="verify-card success">
+    <div class="success-mark">
+      <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m4 12.5 5 5L20 6.5"/></svg>
+    </div>
+    <span class="eyebrow">CmdCode Proxy</span>
+    <h1>授权成功</h1>
+    <p class="success-account">${name}${email ? ` · ${email}` : ''}</p>
+    <p class="success-tip">账号已加入代理账号池，你现在可以关闭此页面，回到终端继续使用。</p>
+  </main>
+</body>
+</html>`;
+}
+
+function renderNotFoundPage() {
+  return `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>页面走丢了 · CmdCode Proxy</title>
+  <link rel="stylesheet" href="/verify.css">
+</head>
+<body class="verify-body">
+  <main class="verify-card">
+    <div class="lost-mark">404</div>
+    <span class="eyebrow">CmdCode Proxy</span>
+    <h1>页面走丢了</h1>
+    <p>你要找的页面不存在，可能是链接失效，或网关地址写错了。</p>
+    <a class="ghost-link" href="/admin">回到控制台</a>
+  </main>
+</body>
+</html>`;
+}
+
 // 管理页登录/渲染
 async function handleAdminPage(req, res, url) {
   cors(res);
@@ -536,16 +741,7 @@ async function handleAdminPage(req, res, url) {
   res.setHeader('Cache-Control', 'no-store');
   // 首次: 未设置密码时显示设置密码页
   if (!proxyKeys.hasAdminPassword() && req.method === 'GET') {
-    res.writeHead(200, { 'Content-Type': 'text/html' });
-    return res.end(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>设置管理密码</title></head>
-<body style="font-family:system-ui;max-width:400px;margin:80px auto;text-align:center">
-<h2>设置管理密码</h2>
-<p>首次使用,请设置管理密码。之后管理页需要登录。</p>
-<form method="POST" action="/admin">
-  <input type="password" name="password" placeholder="管理密码" required style="padding:10px;width:200px">
-  <br><br><button type="submit" style="padding:10px 30px">设置并进入</button>
-</form>
-</body></html>`);
+    return sendHtml(res, renderAuthPage({ mode: 'setup' }));
   }
   if (!proxyKeys.hasAdminPassword() && req.method === 'POST') {
     const chunks = [];
@@ -553,12 +749,15 @@ async function handleAdminPage(req, res, url) {
     const params = new URLSearchParams(Buffer.concat(chunks).toString('utf8'));
     const password = params.get('password')?.trim();
     if (!password || password.length < 4) {
-      res.writeHead(400, { 'Content-Type': 'text/html' });
-      return res.end('<h3>密码至少 4 位,请返回重试</h3><a href="/admin">返回</a>');
+      return sendHtml(res, renderAuthPage({ mode: 'setup', error: '密码至少需要 4 位，请重新输入。' }), 400);
     }
     proxyKeys.setAdminPassword(password);
-    // PRG: 设置密码后重定向到 /admin 显示登录页
-    res.writeHead(302, { Location: '/admin' });
+    // 设置成功后直接建立会话进入控制台
+    const token = createAdminSession();
+    res.writeHead(302, {
+      Location: '/admin',
+      'Set-Cookie': `admin_session=${token}; HttpOnly; Path=/; Max-Age=${ADMIN_SESSION_TTL / 1000}; SameSite=Lax`,
+    });
     return res.end();
   }
   // 已设置密码: 校验
@@ -577,30 +776,19 @@ async function handleAdminPage(req, res, url) {
         });
         return res.end();
       }
-      res.writeHead(401, { 'Content-Type': 'text/html' });
-      return res.end('<h3>密码错误</h3><a href="/admin">返回</a>');
+      return sendHtml(res, renderAuthPage({ mode: 'login', error: '密码不正确，请重试。' }), 401);
     }
     // GET: 已有有效会话 cookie 直接进管理页
     if (validateAdminSession(req)) {
-      res.writeHead(200, { 'Content-Type': 'text/html' });
-      return res.end(ADMIN_HTML);
+      return sendHtml(res, ADMIN_HTML);
     }
     // GET: X-Admin-Pass 头兼容(API 调试用)
     const pass = req.headers['x-admin-pass'];
     if (pass && proxyKeys.validateAdmin(pass)) {
-      res.writeHead(200, { 'Content-Type': 'text/html' });
-      return res.end(ADMIN_HTML);
+      return sendHtml(res, ADMIN_HTML);
     }
     // GET: 未登录 → 登录页
-    res.writeHead(200, { 'Content-Type': 'text/html' });
-    return res.end(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>管理登录</title></head>
-<body style="font-family:system-ui;max-width:400px;margin:80px auto;text-align:center">
-<h2>Command Code Proxy 管理</h2>
-<form method="POST" action="/admin">
-  <input type="password" name="password" placeholder="管理密码" required style="padding:10px;width:200px">
-  <br><br><button type="submit" style="padding:10px 30px">登录</button>
-</form>
-</body></html>`);
+    return sendHtml(res, renderAuthPage({ mode: 'login' }));
   }
   res.writeHead(404).end();
 }
@@ -608,12 +796,22 @@ async function handleAdminPage(req, res, url) {
 // 管理页静态资源
 function serveAdminStatic(res, pathname) {
   try {
-    const file = readFileSync(join(process.cwd(), 'static', pathname.replace(/^\//, '')), 'utf8');
+    const isBinaryImage = /\.(?:png|jpe?g)$/.test(pathname);
+    const file = readFileSync(
+      join(process.cwd(), 'static', pathname.replace(/^\//, '')),
+      isBinaryImage ? undefined : 'utf8',
+    );
     cors(res);
     const contentType = pathname.endsWith('.html')
       ? 'text/html; charset=utf-8'
       : pathname.endsWith('.css')
         ? 'text/css; charset=utf-8'
+        : pathname.endsWith('.svg')
+          ? 'image/svg+xml; charset=utf-8'
+          : pathname.endsWith('.png')
+            ? 'image/png'
+            : /\.jpe?g$/.test(pathname)
+              ? 'image/jpeg'
         : 'application/javascript; charset=utf-8';
     res.writeHead(200, { 'Content-Type': contentType, 'Cache-Control': 'no-store' });
     return res.end(file);
@@ -633,6 +831,21 @@ async function handleAdminApi(req, res, url) {
   }
 
   const parts = url.pathname.split('/').filter(Boolean); // ['api','admin',...]
+
+  // POST /api/admin/logout — 清除管理会话
+  if (req.method === 'POST' && parts.length === 3 && parts[2] === 'logout') {
+    const cookie = req.headers.cookie ?? '';
+    const match = /admin_session=([^;]+)/.exec(cookie);
+    if (match) {
+      const token = decodeURIComponent(match[1]);
+      adminSessions.delete(token);
+    }
+    res.writeHead(200, {
+      'Content-Type': 'application/json',
+      'Set-Cookie': 'admin_session=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax',
+    });
+    return res.end(JSON.stringify({ success: true }));
+  }
 
   // GET /api/admin/keys
   if (req.method === 'GET' && parts.length === 3 && parts[2] === 'keys') {
@@ -667,6 +880,15 @@ async function handleAdminApi(req, res, url) {
   // GET /api/admin/accounts
   if (req.method === 'GET' && parts.length === 3 && parts[2] === 'accounts') {
     return sendJson(res, 200, { accounts: pool.list(), count: pool.count() });
+  }
+  // GET /api/admin/models/market - 管理台已通过会话认证，无需再提供代理 key
+  if (req.method === 'GET' && parts.length === 4 && parts[2] === 'models' && parts[3] === 'market') {
+    return sendJson(res, 200, {
+      groups: MODEL_GROUPS,
+      total: MODEL_TOTAL,
+      vendorCount: VENDOR_COUNT,
+      fallback: FALLBACK_MODELS,
+    });
   }
   // POST /api/admin/accounts
   if (req.method === 'POST' && parts.length === 3 && parts[2] === 'accounts') {
@@ -784,10 +1006,11 @@ const server = createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host ?? 'localhost'}`);
 
   // 设备码 verify 页/提交: 无需 proxy key(授权流程面向还没账号的人)
-  const isVerifyPath = /^\/v1\/accounts\/verify\/[A-Z0-9]{8}$/.test(url.pathname);
+  const isVerifyPath = /^\/v1\/accounts\/verify\/[A-Z0-9]{8}$/.test(url.pathname) || url.pathname === '/verify.css';
 
   // 管理页相关路径: /admin 及 /api/admin/*
-  const isAdminPath = url.pathname === '/admin' || url.pathname === '/admin.html' || url.pathname === '/admin.js' || url.pathname === '/admin.css' || url.pathname.startsWith('/api/admin');
+  const isVendorLogo = /^\/vendor-logos\/[a-z0-9-]+\.(?:svg|png|jpe?g)$/.test(url.pathname);
+  const isAdminPath = url.pathname === '/admin' || url.pathname === '/admin.html' || url.pathname === '/admin.js' || url.pathname === '/admin.css' || url.pathname === '/auth.css' || isVendorLogo || url.pathname.startsWith('/api/admin');
 
   // 对外认证(verify 页和管理页除外——它们有自己的认证机制)
   if (checkProxyAuth(req) === false && !isVerifyPath && !isAdminPath) {
@@ -801,12 +1024,25 @@ const server = createServer(async (req, res) => {
   if (url.pathname.startsWith('/api/admin')) {
     return handleAdminApi(req, res, url);
   }
+  // 登录/授权/404 页面样式: 不需要管理登录
+  if (url.pathname === '/verify.css' || url.pathname === '/auth.css') {
+    return serveAdminStatic(res, url.pathname);
+  }
   // 管理页静态资源(需 admin 会话)
-  if (url.pathname === '/admin.js' || url.pathname === '/admin.css' || url.pathname === '/admin.html') {
+  if (url.pathname === '/admin.js' || url.pathname === '/admin.css' || url.pathname === '/admin.html' || isVendorLogo) {
     if (!validateAdminSession(req)) {
       return sendJson(res, 401, openaiError(401, 'Admin authentication required', 'admin_auth'));
     }
     return serveAdminStatic(res, url.pathname);
+  }
+
+  if (req.method === 'GET' && url.pathname === '/v1/models/market') {
+    return sendJson(res, 200, {
+      groups: MODEL_GROUPS,
+      total: MODEL_TOTAL,
+      vendorCount: VENDOR_COUNT,
+      fallback: FALLBACK_MODELS,
+    });
   }
 
   if (req.method === 'GET' && url.pathname === '/v1/models') {
@@ -860,20 +1096,7 @@ const server = createServer(async (req, res) => {
     if (!flow) {
       return sendJson(res, 404, openaiError(404, 'Device code expired or invalid'));
     }
-    cors(res);
-    res.writeHead(200, { 'Content-Type': 'text/html' });
-    return res.end(`<!DOCTYPE html>
-<html><head><meta charset="utf-8"><title>Command Code 账号授权</title>
-<style>body{font-family:system-ui;max-width:480px;margin:80px auto;padding:0 20px}input{width:100%;padding:10px;margin:8px 0;font-family:monospace}button{padding:10px 24px}</style>
-</head><body>
-<h2>Command Code 账号授权</h2>
-<p>设备码: <code>${userCode}</code></p>
-<p>粘贴你的 Command Code API key(<code>user_...</code>),从官网或 CLI 获取:</p>
-<form method="POST" action="/v1/accounts/verify/${userCode}">
-  <input type="text" name="apiKey" placeholder="user_..." autocomplete="off" required>
-  <br><button type="submit">提交授权</button>
-</form>
-</body></html>`);
+    return sendHtml(res, renderVerifyPage({ userCode }));
   }
 
   // 设备码提交: POST /v1/accounts/verify/:code (表单)
@@ -887,16 +1110,18 @@ const server = createServer(async (req, res) => {
     if (!apiKeyInput) {
       return sendJson(res, 400, openaiError(400, 'Missing apiKey'));
     }
-    submitDeviceCode(userCode, apiKeyInput);
+    try {
+      submitDeviceCode(userCode, apiKeyInput);
+    } catch (err) {
+      const status = err.code === 'flow_expired' ? 410 : 400;
+      return sendHtml(res, renderVerifyPage({ userCode, error: err.message }), status);
+    }
     const flow = consumeDeviceFlow(userCode);
     try {
       const account = await pool.addOauthAccount(flow.apiKey);
-      cors(res);
-      res.writeHead(200, { 'Content-Type': 'text/html' });
-      return res.end(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>授权成功</title></head><body style="font-family:system-ui;text-align:center;margin-top:80px"><h2>✅ 授权成功</h2><p>账号: ${account.userName}(${account.email ?? ''})</p><p>你现在可以关闭此页面,回到终端使用。</p></body></html>`);
+      return sendHtml(res, renderSuccessPage({ account }));
     } catch (err) {
-      const status = err.code === 'invalid_key' ? 401 : 400;
-      return sendJson(res, status, openaiError(status, `授权失败: ${err.message}`, err.code ?? 'account_error'));
+      return sendHtml(res, renderVerifyPage({ userCode, error: `授权失败：${err.message}` }), err.code === 'invalid_key' ? 401 : 400);
     }
   }
 
@@ -908,6 +1133,9 @@ const server = createServer(async (req, res) => {
     return sendJson(res, 200, { success: true });
   }
 
+  if (req.method === 'GET') {
+    return sendHtml(res, renderNotFoundPage(), 404);
+  }
   return sendJson(res, 404, openaiError(404, `Unknown route: ${req.method} ${req.url}`));
 });
 

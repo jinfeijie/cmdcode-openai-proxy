@@ -3,95 +3,129 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>CmdCode Proxy · 管理台</title>
+  <title>网关控制台 · CmdCode Proxy</title>
   <link rel="stylesheet" href="/admin.css">
 </head>
 <body>
   <div class="shell">
     <aside class="sidebar">
       <div class="brand">
-        <div class="brand-mark">CP</div>
-        <div>
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m8 6-5 6 5 6"/><path d="m16 6 5 6-5 6"/></svg>
+        </span>
+        <div class="brand-copy">
           <strong>CmdCode Proxy</strong>
-          <span>控制台</span>
+          <span>Gateway Console</span>
         </div>
       </div>
-      <nav class="nav">
-        <button class="nav-item active" data-view="overview">概览</button>
-        <button class="nav-item" data-view="keys">访问密钥</button>
-        <button class="nav-item" data-view="accounts">账号池</button>
+
+      <nav class="nav" aria-label="主导航">
+        <button class="nav-item active" data-view="overview">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+          <span>总览</span>
+        </button>
+        <button class="nav-item" data-view="keys">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="m10.8 12.2 8.4-8.4"/><path d="m16 6 3 3"/><path d="m13.5 8.5 2 2"/></svg>
+          <span>访问密钥</span>
+        </button>
+        <button class="nav-item" data-view="accounts">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><path d="M16 4.8a3.5 3.5 0 0 1 0 6.4"/><path d="M18.5 13.6a5.5 5.5 0 0 1 2 5.4"/></svg>
+          <span>账号池</span>
+        </button>
+        <button class="nav-item" data-view="market">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7.5 7.5 4h9L20 7.5v9L16.5 20h-9L4 16.5Z"/><path d="M8.2 12h7.6"/><path d="M12 8.2v7.6"/></svg>
+          <span>模型市场</span>
+          <span class="nav-pill" id="modelCountPill">-</span>
+        </button>
       </nav>
-      <div class="sidebar-foot">
-        <div class="status-line">
-          <span class="dot"></span>
-          <span id="navStatus">读取中</span>
+
+      <div class="sidebar-status">
+        <div class="status-top">
+          <span class="status-label">网关状态</span>
+          <span class="dot" id="navDot"></span>
         </div>
+        <strong id="navStatusText">读取中</strong>
+        <span id="navStatusSub">正在连接本地服务</span>
+      </div>
+      <div class="sidebar-foot">
+        <button class="logout-btn" id="logoutBtn" aria-label="退出登录" title="退出登录">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H5.5A1.5 1.5 0 0 0 4 5.5v13A1.5 1.5 0 0 0 5.5 20H9"/><path d="m15 8 4 4-4 4"/><path d="M19 12H9"/></svg>
+          <span>退出登录</span>
+        </button>
       </div>
     </aside>
 
     <main class="main">
       <header class="topbar">
-        <div>
-          <h1 id="pageTitle">概览</h1>
-          <p id="pageSub">代理运行状态与关键指标</p>
+        <div class="topbar-title">
+          <div>
+            <span class="page-eyebrow">CMD / OPERATIONS</span>
+            <h1 id="pageTitle">总览</h1>
+            <p id="pageSub">代理运行状态与关键指标</p>
+          </div>
         </div>
-        <button class="icon-btn" id="refreshBtn" title="刷新数据">↻</button>
+        <div class="topbar-actions">
+          <span class="endpoint-chip">
+            <i></i>
+            <code id="endpointLabel">/v1</code>
+          </span>
+          <button class="icon-btn" id="refreshBtn" aria-label="刷新数据" title="刷新数据">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8.1 8.1 0 0 0-15.5-2"/><path d="M4 5v4h4"/><path d="M4 13a8.1 8.1 0 0 0 15.5 2"/><path d="M20 19v-4h-4"/></svg>
+          </button>
+        </div>
       </header>
 
       <div id="toast" class="toast" role="status"></div>
 
-      <!-- 概览 -->
       <section id="view-overview" class="view active">
-        <div class="stat-grid">
-          <div class="stat-card">
-            <span class="stat-label">代理密钥</span>
-            <strong id="statKeys">-</strong>
-            <small id="statKeysSub">读取中</small>
+        <div class="ops-head">
+          <div><span class="section-kicker">LIVE GATEWAY</span><time id="briefingDate"></time></div>
+          <div class="ops-health" id="statusSummary">
+            <span class="health-beacon"><i class="dot ok"></i></span>
+            <div><strong id="healthTitle">正在检查系统状态</strong><span id="healthDescription">正在连接本地代理与 Command Code 网关</span></div>
           </div>
-          <div class="stat-card">
-            <span class="stat-label">账号池</span>
-            <strong id="statAccounts">-</strong>
-            <small id="statAccountsSub">读取中</small>
-          </div>
-          <div class="stat-card">
-            <span class="stat-label">可用余额</span>
-            <strong id="statBalance">-</strong>
-            <small id="statBalanceSub">读取中</small>
-          </div>
-          <div class="stat-card">
-            <span class="stat-label">网关</span>
-            <strong id="statGateway">-</strong>
-            <small id="statGatewaySub">api.commandcode.ai</small>
+          <div class="service-ledger">
+            <span><em>本地代理</em><strong id="healthLocal">-</strong></span>
+            <span><em>上游网关</em><strong><i class="dot" id="healthGatewayDot"></i><b id="healthGateway">-</b></strong></span>
+            <span><em>可用账号</em><strong id="healthAccounts">-</strong></span>
           </div>
         </div>
 
-        <div class="panel">
-          <div class="panel-head">
-            <div>
-              <h2>运行方式</h2>
-              <p>把 OpenAI 兼容客户端指向本代理，统一走 Command Code 网关。</p>
-            </div>
-          </div>
-          <div class="code-box">
-            <code id="usageSnippet">正在读取端点信息…</code>
-            <button class="ghost-btn" id="copySnippet">复制</button>
-          </div>
+        <div class="metric-ledger" aria-label="资源概况">
+          <div><span>访问密钥</span><strong id="statKeys">-</strong><small id="statKeysSub">读取中</small></div>
+          <div><span>账号池</span><strong id="statAccounts">-</strong><small id="statAccountsSub">读取中</small></div>
+          <div><span>可用余额</span><strong id="statBalance">-</strong><small id="statBalanceSub">读取中</small></div>
+          <div><span>可用模型</span><strong id="statModels">-</strong><small id="statModelsSub">读取中</small></div>
         </div>
+
+        <section class="connection-workbench">
+          <div class="workbench-title"><span class="section-kicker">CONNECT</span><h2>接入代理</h2><p>OpenAI 兼容客户端使用同一个端点与代理密钥。</p></div>
+          <div class="connection-field"><span>BASE URL</span><code id="baseUrlDisplay">正在读取…</code></div>
+          <button class="primary-btn copy-btn" id="copySnippet"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>复制密钥</button>
+          <details class="code-disclosure"><summary>查看调用示例</summary><div class="code-box"><code id="usageSnippet">正在读取端点信息…</code></div></details>
+        </section>
       </section>
 
-      <!-- 访问密钥 -->
       <section id="view-keys" class="view">
-        <div class="panel">
-          <div class="panel-head">
-            <div>
-              <h2>客户端密钥</h2>
-              <p>客户端请求使用 <code>Authorization: Bearer &lt;key&gt;</code>。</p>
-            </div>
+        <div class="page-command">
+          <div class="command-intro">
+            <span class="section-kicker">CREATE CREDENTIAL</span>
+            <h2>创建访问密钥</h2>
+            <p>为每个客户端单独命名，便于停用和追踪。</p>
           </div>
-          <div class="toolbar">
-            <input id="keyName" class="field" placeholder="名称，如 friend-a" maxlength="40">
-            <input id="keyValue" class="field mono" placeholder="留空自动生成" spellcheck="false">
-            <button class="primary-btn" id="addKeyBtn">生成密钥</button>
+          <div class="command-form key-command">
+            <input id="keyName" class="field" placeholder="名称，如 friend-a" maxlength="40" autocomplete="off">
+            <input id="keyValue" class="field mono" placeholder="留空自动生成" spellcheck="false" autocomplete="off">
+            <button class="primary-btn" id="addKeyBtn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="m10.8 12.2 8.4-8.4"/><path d="m16 6 3 3"/><path d="m13.5 8.5 2 2"/></svg>
+              生成密钥
+            </button>
+          </div>
+        </div>
+        <section class="data-ledger">
+          <div class="ledger-head">
+            <div><h2>客户端凭据</h2><p>请求时作为 Bearer Token 使用</p></div>
+            <span class="count-badge" id="keyCountBadge">0 个</span>
           </div>
           <div class="table-wrap">
             <table>
@@ -100,43 +134,49 @@
                   <th>名称</th>
                   <th>密钥</th>
                   <th>状态</th>
-                  <th>连接串</th>
+                  <th>复制</th>
                   <th class="col-actions">操作</th>
                 </tr>
               </thead>
               <tbody id="keyRows"></tbody>
             </table>
-            <div id="keyEmpty" class="empty">还没有密钥，先创建一个。</div>
-          </div>
-        </div>
-
-        <div class="panel">
-          <div class="panel-head">
-            <div>
-              <h2>HTTPS 出口</h2>
-              <p>部署在 TLS 反代之后时，复制 HTTPS 连接串会使用这里的地址。</p>
+            <div id="keyEmpty" class="empty">
+              <span class="empty-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="m10.8 12.2 8.4-8.4"/><path d="m16 6 3 3"/></svg>
+              </span>
+              <strong>还没有密钥</strong>
+              <p>给上方表单起个名字，一点就生成。</p>
             </div>
           </div>
-          <div class="toolbar">
-            <input id="httpsBase" class="field mono" placeholder="https://proxy.example.com/v1" spellcheck="false">
-            <button class="ghost-btn" id="saveBaseBtn">保存</button>
-          </div>
-        </div>
+        </section>
       </section>
 
-      <!-- 账号池 -->
       <section id="view-accounts" class="view">
-        <div class="panel">
-          <div class="panel-head">
-            <div>
-              <h2>Command Code 账号</h2>
-              <p>按余额分配，支持会话亲和与故障切换。</p>
-            </div>
-            <button class="primary-btn" id="oauthBtn">OAuth 授权</button>
+        <div class="page-command account-command">
+          <div class="command-intro">
+            <span class="section-kicker">ADD CAPACITY</span>
+            <h2>接入 Command Code 账号</h2>
+            <p>优先使用 OAuth，授权完成后自动加入账号池。</p>
           </div>
-          <div class="toolbar">
-            <input id="accKey" class="field mono" placeholder="user_… 或完整 API key" spellcheck="false">
-            <button class="ghost-btn" id="addAccBtn">手动添加</button>
+          <button class="primary-btn oauth-command" id="oauthBtn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v10"/><path d="m8 9 4 4 4-4"/><path d="M5 15v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3"/></svg>
+                OAuth 授权
+          </button>
+          <details class="manual-entry">
+            <summary>使用 API Key 手动添加</summary>
+            <div class="command-form account-form">
+            <input id="accKey" class="field mono" placeholder="user_… 或完整 API key" spellcheck="false" autocomplete="off">
+            <button class="ghost-btn" id="addAccBtn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+              手动添加
+            </button>
+            </div>
+          </details>
+        </div>
+        <section class="data-ledger">
+          <div class="ledger-head">
+            <div><h2>账号池</h2><p>按可用余额分配，并保持会话亲和</p></div>
+            <span class="count-badge" id="accCountBadge">0 个</span>
           </div>
           <div class="table-wrap">
             <table>
@@ -152,11 +192,67 @@
               </thead>
               <tbody id="accRows"></tbody>
             </table>
-            <div id="accEmpty" class="empty">账号池为空，添加账号后即可转发请求。</div>
+            <div id="accEmpty" class="empty">
+              <span class="empty-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/></svg>
+              </span>
+              <strong>账号池还是空的</strong>
+              <p>添加一个 Command Code 账号后，代理就能开始转发请求。</p>
+            </div>
           </div>
-        </div>
+        </section>
+      </section>
+
+      <section id="view-market" class="view">
+        <section class="market-surface">
+          <header class="market-command">
+            <div class="market-mode" id="marketMode" aria-label="模型范围">
+              <button class="active" data-mode="recommended">推荐</button>
+              <button data-mode="all">全部模型</button>
+            </div>
+            <label class="market-select">
+              <span>厂商</span>
+              <select id="vendorSelect" aria-label="选择厂商"></select>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 10 5 5 5-5"/></svg>
+            </label>
+            <label class="market-search" for="modelSearch">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+              <input id="modelSearch" type="search" placeholder="搜索模型 ID" autocomplete="off">
+              <kbd>⌘ K</kbd>
+            </label>
+          </header>
+          <div class="market-context">
+            <div><strong id="directoryTitle">推荐模型</strong><span id="directoryCount">正在读取</span></div>
+            <p><b id="summaryTotal">-</b> 个模型 <i></i> <b id="summaryVendors">-</b> 个厂商 <i></i> <b id="summaryFallback">-</b> 个推荐</p>
+          </div>
+          <div class="model-directory">
+            <div class="model-head" aria-hidden="true"><span>模型 ID</span><span>厂商</span><span>定位</span><span></span></div>
+            <div id="vendorGrid"></div>
+          </div>
+        </section>
       </section>
     </main>
+  </div>
+
+  <div id="oauthModal" class="modal-mask" hidden>
+    <div class="modal">
+      <div class="modal-head">
+        <div class="modal-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v10"/><path d="m8 9 4 4 4-4"/><path d="M5 15v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3"/></svg>
+        </div>
+        <div>
+          <h3>等待 OAuth 授权</h3>
+          <p>授权窗口已打开，完成后账号会自动入库。</p>
+        </div>
+        <button class="modal-close" id="oauthClose" aria-label="关闭">×</button>
+      </div>
+      <div class="oauth-steps">
+        <div class="step active" id="oauthStep1"><i>1</i><span>打开授权窗口</span></div>
+        <div class="step" id="oauthStep2"><i>2</i><span>确认登录</span></div>
+        <div class="step" id="oauthStep3"><i>3</i><span>回到控制台</span></div>
+      </div>
+      <p class="modal-status" id="oauthStatus">正在打开官方授权页面…</p>
+    </div>
   </div>
 
   <script src="/admin.js"></script>
