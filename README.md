@@ -74,3 +74,7 @@ HOST=0.0.0.0 PORT=8787 npm start
 - 不支持 embeddings、moderation、images 和 audio 端点
 - 账号池为空时返回 `503 no_accounts`
 - 上游提示 CLI 版本过旧时,更新 `CMDCODE_CLI_VERSION` 后重启服务
+
+### 友链 / Community
+本项目接受 LINUX DO 社区佬友监督与反馈：[LINUX DO](https://linux.do/)
+
